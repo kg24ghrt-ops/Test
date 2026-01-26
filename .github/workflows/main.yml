@@ -1,49 +1,22 @@
-name: Java Remote Runner
+name: Remote Run
 on:
   push:
-    branches: [ 'main' ]
-permissions:
-  contents: write
-
+    branches: [ main ]
 jobs:
-  run-java:
+  execute:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
-
-      - name: Set up JDK
-        uses: actions/setup-java@v4
-        with:
-          java-version: '21'
-          distribution: 'temurin'
-
-      - name: Execute
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - name: Run
         run: |
-          mkdir -p logs input
-          INPUT_FILE=$(ls input/input_*.txt 2>/dev/null | sort -r | head -n 1)
-          if [ -z "$INPUT_FILE" ]; then
-            echo "No input file found!" > logs/output.txt
-            exit 1
-          fi
-
-          if [ -f "src/Main.java" ]; then
-            javac src/Main.java
-            java -cp src Main < "$INPUT_FILE" > logs/output.txt 2>&1
-          else
-            echo "Error: src/Main.java not found." > logs/output.txt
-          fi
-
-          echo -e "\n--- FINISHED ---" >> logs/output.txt
-          TIMESTAMP=$(date +'%Y-%m-%d_%H-%M-%S')
-          cp logs/output.txt logs/run_$TIMESTAMP.txt
-
-      - name: Push Logs
+          mkdir -p logs
+          ID=$(ls input/run_*.json | xargs -n1 basename | cut -d'_' -f2 | cut -d'.' -f1)
+          javac src/Main.java
+          java -cp src Main < input/input_$ID.txt > logs/output_$ID.txt 2>&1 || echo "--- EXECUTION FAILED ---" >> logs/output_$ID.txt
+          echo "--- FINISHED ---" >> logs/output_$ID.txt
+      - name: Upload
         run: |
-          git config user.name "RemoteBot"
-          git config user.email "bot@remote.com"
-          git fetch origin logs || git checkout -b logs
-          git switch logs
-          git add logs/
-          git commit -m "Results update" || echo "No changes to commit"
-          git push origin logs --force
+          git config user.name "Runner"
+          git config user.email "r@edu.com"
+          git add logs/ && git commit -m "Logs" && git push origin main:logs --force
