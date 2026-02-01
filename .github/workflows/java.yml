@@ -1,0 +1,25 @@
+name: Remote Run Java
+on:
+  push:
+    branches:
+      - 'runs/**'
+
+jobs:
+  execute:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run
+        run: |
+          mkdir -p logs
+          RUN_ID=$(grep -oP '(?<="runId":")[^"]*' input/run.json)
+          javac src/Main.java
+          java -cp src Main > logs/output_${RUN_ID}.txt 2>&1 || echo '--- EXECUTION FAILED ---' >> logs/output_${RUN_ID}.txt
+          echo '--- FINISHED ---' >> logs/output_${RUN_ID}.txt
+      - name: Sync Back
+        run: |
+          git config user.name "Override-Runner"
+          git config user.email "runner@internal"
+          git add logs/
+          git commit -m "Results"
+          git push origin HEAD:${{ github.ref_name }} --force
