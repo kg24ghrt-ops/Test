@@ -1,0 +1,21 @@
+name: Remote Run Python
+on:
+  push:
+    branches: [ 'runs/exec_**' ]
+permissions:
+  contents: write
+jobs:
+  execute:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run
+        run: |
+          mkdir -p logs
+          RUN_ID=$(grep -oP '(?<="runId":")[^"]*' input/run.json)
+          python3 src/main.py < input/input_${RUN_ID}.txt > logs/output_${RUN_ID}.txt 2>&1 || true
+          echo '--- FINISHED ---' >> logs/output_${RUN_ID}.txt
+      - name: Sync
+        run: |
+          git config user.name "Runner"; git config user.email "bot@internal"
+          git add logs/; git commit -m "Logs"; git push origin HEAD:${{ github.ref_name }} --force
