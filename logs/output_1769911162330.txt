@@ -1,0 +1,6 @@
+--- Java Remote Runner ---
+System Version: 17.0.18
+Enter some text to echo: 
+No input received from terminal.
+--------------------------
+--- FINISHED ---
